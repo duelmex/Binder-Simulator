@@ -1,4 +1,5 @@
 Trading Card Binder Simulator
+
 This application allows you to organize and manage your trading card collection in a virtual binder. You can select different layouts, add cards from various sources, sort them, and manage your binder's capacity.
 
 Features
