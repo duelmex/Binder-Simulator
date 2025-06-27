@@ -1,0 +1,970 @@
+/* General body styling */
+body {
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    flex-direction: column; /* To center the main-layout-wrapper */
+    align-items: center; /* Center the main-layout-wrapper horizontally */
+    min-height: 100vh;
+    background-color: #E0F7FA; /* Light Cyan */
+    padding: 20px; /* Overall page padding */
+    box-sizing: border-box;
+    color: #333;
+    transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition for dark mode */
+}
+
+/* Dark mode styles */
+body.dark-mode {
+    background-color: #263238; /* Dark Blue Grey */
+    color: #E0F2F7; /* Light Blue Grey text */
+}
+
+/* Main Layout Wrapper: Arranges app-container and sidebar side-by-side, and scrolls with content */
+#main-layout-wrapper {
+    display: flex;
+    flex-direction: row; /* Arrange app-container and sidebar horizontally */
+    align-items: flex-start; /* Align contents to the top */
+    gap: 20px; /* Space between the app-container and the sidebar */
+    width: 100%;
+    max-width: 1200px; /* Max width for the entire layout (app + sidebar) */
+    position: relative; /* Needed for z-index context if floating elements,*/
+}
+
+/* App Container: Main content area */
+#app-container {
+    flex-grow: 1; /* Allows app-container to take available space */
+    max-width: calc(100% - 220px); /* Adjust based on sidebar width + gap */
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Spacing between sections */
+    background-color: #FFFFFF; /* White background */
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+body.dark-mode #app-container {
+    background-color: #37474F; /* Darker grey for dark mode */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Sidebar: For action buttons */
+#sidebar {
+    width: 200px; /* Fixed width for the sidebar */
+    min-width: 180px; /* Ensure it doesn't get too small */
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Spacing between button groups */
+    background-color: #FFFFFF; /* White background */
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+body.dark-mode #sidebar {
+    background-color: #37474F; /* Darker grey for dark mode */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+h1 {
+    color: #00796B; /* Teal 700 */
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 2.2em;
+    font-weight: 700;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.05);
+    transition: color 0.3s ease;
+}
+
+body.dark-mode h1 {
+    color: #64FFDA; /* Cyan A200 */
+}
+
+/* Control Group Labels */
+.control-group-label {
+    font-weight: bold;
+    color: #00796B; /* Teal 700 */
+    margin-bottom: 5px;
+    transition: color 0.3s ease;
+}
+
+body.dark-mode .control-group-label {
+    color: #9C27B0; /* Deep Purple 500 */
+}
+
+/* Search Container */
+#search-container {
+    position: relative; /* For dropdown positioning */
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+#search-input {
+    flex-grow: 1;
+    padding: 10px 15px;
+    border: 1px solid #B2EBF2; /* Light Blue 100 */
+    border-radius: 8px;
+    font-size: 1em;
+    background-color: #E0F7FA; /* Light Cyan */
+    color: #333;
+    transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+}
+
+#search-input:focus {
+    outline: none;
+    border-color: #00BCD4; /* Cyan 500 */
+    box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.2);
+}
+
+body.dark-mode #search-input {
+    background-color: #455A64; /* Blue Grey 700 */
+    border-color: #607D8B; /* Blue Grey 500 */
+    color: #E0F2F7;
+}
+
+body.dark-mode #search-input:focus {
+    border-color: #9C27B0; /* Deep Purple 500 */
+    box-shadow: 0 0 0 3px rgba(156, 39, 176, 0.2);
+}
+
+#search-input:disabled {
+    background-color: #CFD8DC; /* Light grey for disabled */
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+body.dark-mode #search-input:disabled {
+    background-color: #546E7A; /* Darker grey for disabled in dark mode */
+}
+
+#search-results-dropdown {
+    position: absolute;
+    top: 100%; /* Position below the search input */
+    left: 0;
+    right: 0;
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: #FFFFFF;
+    border: 1px solid #B2EBF2;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: none; /* Hidden by default */
+    padding: 5px 0; /* Internal padding */
+}
+
+body.dark-mode #search-results-dropdown {
+    background-color: #455A64;
+    border-color: #607D8B;
+}
+
+.search-result-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 15px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    gap: 10px;
+    border-bottom: 1px solid #ECEFF1; /* Light divider */
+}
+
+body.dark-mode .search-result-item {
+    border-bottom-color: #546E7A; /* Darker divider */
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-item:hover {
+    background-color: #E0F7FA; /* Lighter cyan on hover */
+}
+
+body.dark-mode .search-result-item:hover {
+    background-color: #546E7A; /* Darker blue grey on hover */
+}
+
+.search-result-item-image {
+    width: 40px;
+    height: 56px; /* Aspect ratio for a card */
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0; /* Prevent image from shrinking */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.search-result-item .highlight {
+    background-color: #FFEB3B; /* Yellow for highlight */
+    padding: 1px 3px;
+    border-radius: 3px;
+}
+body.dark-mode .search-result-item .highlight {
+    background-color: #FFC107; /* Amber for highlight in dark mode */
+    color: #333;
+}
+
+.search-result-item.loading-message,
+.search-result-item.no-results-message {
+    text-align: center;
+    font-style: italic;
+    color: #78909C; /* Blue Grey 400 */
+    padding: 10px;
+    border-bottom: none;
+    cursor: default;
+}
+body.dark-mode .search-result-item.loading-message,
+body.dark-mode .search-result-item.no-results-message {
+    color: #B0BEC5; /* Blue Grey 200 */
+}
+
+
+/* Draggable Card Preview */
+#draggable-card-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #F1F8E9; /* Light Green 50 */
+    border: 1px dashed #A5D6A7; /* Green 200 */
+    border-radius: 8px;
+    text-align: center;
+    font-size: 0.9em;
+    color: #388E3C; /* Green 700 */
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+    cursor: grab;
+    width: fit-content;
+    align-self: center; /* Center in parent app-container */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+body.dark-mode #draggable-card-preview {
+    background-color: #4CAF50; /* Green 500 */
+    border-color: #81C784; /* Green 300 */
+    color: #FFF;
+}
+
+#draggable-card-preview.active {
+    display: flex;
+}
+
+#draggable-card-preview-image {
+    width: 80px; /* Smaller preview image */
+    height: 112px; /* Maintain aspect ratio */
+    object-fit: cover;
+    margin-bottom: 5px;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+}
+
+/* Action Button Styles */
+.action-button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 8px;
+    background-color: #00BCD4; /* Cyan 500 */
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: 100%; /* Make buttons full width in sidebar */
+    text-align: center;
+}
+
+.action-button:hover:not(:disabled) {
+    background-color: #00ACC1; /* Cyan 600 */
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.action-button:active:not(:disabled) {
+    background-color: #0097A7; /* Cyan 700 */
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.action-button:disabled {
+    background-color: #B0BEC5; /* Blue Grey 200 */
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+body.dark-mode .action-button {
+    background-color: #9C27B0; /* Deep Purple 500 */
+}
+
+body.dark-mode .action-button:hover:not(:disabled) {
+    background-color: #8E24AA; /* Deep Purple 600 */
+}
+
+body.dark-mode .action-button:active:not(:disabled) {
+    background-color: #7B1FA2; /* Deep Purple 700 */
+}
+
+body.dark-mode .action-button:disabled {
+    background-color: #607D8B; /* Blue Grey 500 */
+}
+
+
+/* Layout Controls */
+#layout-controls {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 10px;
+    background-color: #F5F5F5; /* Grey 100 */
+    border-radius: 8px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    transition: background-color 0.3s ease;
+}
+
+body.dark-mode #layout-controls {
+    background-color: #424242; /* Grey 800 */
+}
+
+#layout-controls label {
+    cursor: pointer;
+    font-weight: 500;
+    color: #4CAF50; /* Green 500 */
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.3s ease;
+}
+
+body.dark-mode #layout-controls label {
+    color: #8BC34A; /* Light Green 500 */
+}
+
+#layout-controls input[type="radio"] {
+    appearance: none;
+    background-color: #fff;
+    margin: 0;
+    font: inherit;
+    color: currentColor;
+    width: 1.15em;
+    height: 1.15em;
+    border: 0.15em solid #00BCD4; /* Cyan 500 */
+    border-radius: 50%;
+    transform: translateY(-0.075em);
+    display: grid;
+    place-content: center;
+    transition: border-color 0.3s ease;
+}
+
+body.dark-mode #layout-controls input[type="radio"] {
+    border-color: #9C27B0; /* Deep Purple 500 */
+    background-color: #607D8B;
+}
+
+#layout-controls input[type="radio"]::before {
+    content: "";
+    width: 0.65em;
+    height: 0.65em;
+    border-radius: 50%;
+    transform: scale(0);
+    transition: transform 0.2s ease-in-out;
+    box-shadow: inset 1em 1em #0097A7; /* Cyan 700 */
+    background-color: CanvasText;
+}
+
+body.dark-mode #layout-controls input[type="radio"]::before {
+    box-shadow: inset 1em 1em #7B1FA2; /* Deep Purple 700 */
+}
+
+#layout-controls input[type="radio"]:checked::before {
+    transform: scale(1);
+}
+
+#layout-message {
+    text-align: center;
+    color: #F44336; /* Red 500 */
+    font-weight: bold;
+    margin-top: 10px;
+    display: block; /* Shown by default, hidden by JS */
+}
+
+body.dark-mode #layout-message {
+    color: #FFCDD2; /* Red 50 */
+}
+
+
+/* Binder Container */
+#binder-container {
+    border: 2px dashed #B0BEC5; /* Blue Grey 200 */
+    border-radius: 10px;
+    padding: 20px;
+    min-height: 250px; /* Minimum height for visual appeal */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    position: relative; /* For the insert highlight */
+    transition: border-color 0.3s ease;
+}
+
+body.dark-mode #binder-container {
+    border-color: #607D8B; /* Blue Grey 500 */
+}
+
+#binder-container.highlight {
+    border-color: #4CAF50; /* Green 500 on drag over */
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.3);
+}
+
+body.dark-mode #binder-container.highlight {
+    border-color: #8BC34A; /* Light Green 500 */
+    box-shadow: 0 0 15px rgba(139, 195, 74, 0.3);
+}
+
+#empty-binder-message {
+    color: #78909C; /* Blue Grey 400 */
+    font-style: italic;
+    text-align: center;
+    display: block; /* Default to block, hidden by JS if cards exist */
+}
+
+body.dark-mode #empty-binder-message {
+    color: #B0BEC5; /* Blue Grey 200 */
+}
+
+#card-slots-grid {
+    display: grid;
+    /* Grid columns set by JS based on selectedLayout */
+    gap: 15px; /* Space between cards */
+    width: 100%; /* Take full width of binder container */
+    padding: 10px; /* Internal padding for the grid itself */
+    box-sizing: border-box;
+    /* This will be set to 'none' or 'grid' by JS based on layout selection */
+    display: none; 
+    position: relative; /* For highlight positioning */
+}
+
+.card-slot {
+    background-color: #ECEFF1; /* Light Gray for empty slots in light mode (was #F0F4C3 Light Green) */
+    border: 1px solid #CFD8DC; /* Slightly darker light gray border */
+    border-radius: 8px;
+    aspect-ratio: 1 / 1.4; /* Standard card aspect ratio (e.g., 2.5 x 3.5 inches) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative; /* For delete button and card image positioning */
+    overflow: hidden; /* Hide overflow for images */
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+body.dark-mode .card-slot {
+    background-color: #607D8B; /* Blue Grey 500 (remains the same) */
+    border-color: #78909C; /* Blue Grey 400 (remains the same) */
+}
+
+.card-slot.is-drop-target {
+    border: 3px solid #FFC107; /* Amber 500 */
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+}
+body.dark-mode .card-slot.is-drop-target {
+    border-color: #FFECB3; /* Amber 50 */
+}
+
+
+.card-slot img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Cover the slot area */
+    border-radius: 7px; /* Slightly less than slot to show border */
+    display: block; /* Remove extra space below image */
+    transition: transform 0.2s ease;
+}
+
+.card-slot img:hover {
+    transform: scale(1.03); /* Slight zoom on hover */
+}
+
+.card-slot .fade-in {
+    opacity: 0;
+    transform: scale(0.8);
+    animation: fadeInScale 0.2s forwards;
+}
+
+@keyframes fadeInScale {
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.card-slot img.fade-out {
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+.card-placeholder-text {
+    text-align: center;
+    color: #616161; /* Grey 700 */
+    font-size: 0.85em;
+    padding: 5px;
+    word-break: break-word; /* Ensure long names break */
+}
+body.dark-mode .card-placeholder-text {
+    color: #CFD8DC; /* Blue Grey 100 */
+}
+
+
+.card-slot .delete-card-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: #F44336; /* Red 500 */
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 0.8em;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
+    z-index: 1; /* Ensure it's above the image */
+}
+
+.card-slot .delete-card-button:hover {
+    background-color: #D32F2F; /* Red 700 */
+    opacity: 1;
+}
+
+/* Pagination Controls */
+#pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+#pagination-controls button {
+    padding: 8px 12px;
+    border: 1px solid #B2EBF2;
+    border-radius: 8px;
+    background-color: #E0F7FA;
+    color: #00796B;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+#pagination-controls button:hover:not(:disabled) {
+    background-color: #B2EBF2;
+    border-color: #00BCD4;
+    color: #004D40;
+}
+
+#pagination-controls button:disabled {
+    background-color: #CFD8DC;
+    border-color: #B0BEC5;
+    color: #78909C;
+    cursor: not-allowed;
+}
+
+body.dark-mode #pagination-controls button {
+    background-color: #455A64;
+    border-color: #607D8B;
+    color: #9C27B0;
+}
+
+body.dark-mode #pagination-controls button:hover:not(:disabled) {
+    background-color: #546E7A;
+    border-color: #8E24AA;
+    color: #EA80FC;
+}
+
+body.dark-mode #pagination-controls button:disabled {
+    background-color: #546E7A;
+    border-color: #424242;
+    color: #757575;
+}
+
+#page-indicator {
+    font-weight: bold;
+    color: #00796B;
+    min-width: 100px; /* Ensure space for text */
+    text-align: center;
+    transition: color 0.3s ease;
+}
+
+body.dark-mode #page-indicator {
+    color: #64FFDA;
+}
+
+
+/* Capacity Controls */
+#capacity-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #F5F5F5;
+    border-radius: 8px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+}
+
+body.dark-mode #capacity-controls {
+    background-color: #424242;
+}
+
+#capacity-controls label {
+    font-weight: 500;
+    color: #00796B;
+}
+body.dark-mode #capacity-controls label {
+    color: #64FFDA;
+}
+
+
+#total-slots-input {
+    padding: 8px 12px;
+    border: 1px solid #B2EBF2;
+    border-radius: 8px;
+    font-size: 1em;
+    width: 80px;
+    text-align: center;
+    background-color: #E0F7FA;
+    color: #333;
+    transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+}
+
+#total-slots-input:focus {
+    outline: none;
+    border-color: #00BCD4;
+    box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.2);
+}
+body.dark-mode #total-slots-input {
+    background-color: #455A64;
+    border-color: #607D8B;
+    color: #E0F2F7;
+}
+
+body.dark-mode #total-slots-input:focus {
+    border-color: #9C27B0;
+    box-shadow: 0 0 0 3px rgba(156, 39, 176, 0.2);
+}
+
+/* Dark Mode Toggle Button */
+#dark-mode-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    padding: 8px 15px;
+    border: 1px solid #00796B;
+    border-radius: 8px;
+    background-color: #00897B; /* Teal 600 */
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 100; /* Ensure it's above other content */
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#dark-mode-toggle:hover {
+    background-color: #00695C; /* Teal 800 */
+    border-color: #004D40;
+}
+
+body.dark-mode #dark-mode-toggle {
+    background-color: #7B1FA2; /* Deep Purple 700 */
+    border-color: #4A148C; /* Deep Purple 900 */
+}
+
+body.dark-mode #dark-mode-toggle:hover {
+    background-color: #6A1B9A; /* Deep Purple 800 */
+    border-color: #420A7C;
+}
+
+/* Loading Overlay */
+#loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2em;
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+#loading-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.spinner {
+    border: 8px solid rgba(255, 255, 255, 0.3);
+    border-top: 8px solid #00BCD4; /* Cyan 500 */
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+body.dark-mode .spinner {
+    border-top: 8px solid #9C27B0; /* Deep Purple 500 */
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* New: Styles for the progress bar container */
+#progress-bar-container {
+    width: 80%; /* Width of the progress bar */
+    max-width: 400px;
+    background-color: #B2EBF2; /* Light background for the bar track */
+    height: 10px; /* Height of the bar */
+    border-radius: 5px; /* Ensures the bar's rounded corners are maintained */
+    margin-top: 10px; /* Space from message/percentage */
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+    display: none; /* Hidden by default, shown when progress is active */
+}
+
+body.dark-mode #progress-bar-container {
+    background-color: #607D8B; /* Darker grey for dark mode */
+}
+
+/* New: Styles for the actual progress bar */
+#progress-bar {
+    height: 100%;
+    width: 0%; /* Initial width is 0% */
+    background-color: #00BCD4; /* Cyan progress color */
+    border-radius: 5px; /* Match container border-radius */
+    transition: width 0.1s ease-out; /* Smooth transition for width changes */
+}
+
+body.dark-mode #progress-bar {
+    background-color: #9C27B0; /* Deep Purple progress color */
+}
+
+
+/* New: Cancel button during import */
+#cancel-import-button {
+    margin-top: 15px;
+    padding: 8px 15px;
+    border-radius: 8px;
+    background-color: #F44336; /* Red 500 */
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#cancel-import-button:hover {
+    background-color: #D32F2F; /* Red 700 */
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#cancel-import-button:active {
+    background-color: #C62828; /* Red 800 */
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Insert Highlight for Drag & Drop */
+.insert-highlight {
+    position: absolute;
+    background-color: #4CAF50; /* Green highlight color */
+    z-index: 50; /* Above slots, below dragged card */
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    border-radius: 2px;
+}
+
+.insert-highlight.active {
+    opacity: 1;
+}
+
+body.dark-mode .insert-highlight {
+    background-color: #8BC34A; /* Light Green for dark mode */
+}
+
+
+/* Custom Modal Styles */
+.modal {
+    position: fixed;
+    z-index: 2001; /* Above loading overlay */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: auto;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    transform: translateY(-20px);
+    transition: transform 0.3s ease;
+}
+
+.modal.active .modal-content {
+    transform: translateY(0);
+}
+
+body.dark-mode .modal-content {
+    background-color: #37474F; /* Dark background for modal content */
+    color: #E0F2F7; /* Light text */
+}
+
+#modal-message {
+    margin-bottom: 25px;
+    font-size: 1.1em;
+    color: #333;
+}
+
+body.dark-mode #modal-message {
+    color: #E0F2F7;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.modal-buttons button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#modal-confirm-button {
+    background-color: #4CAF50; /* Green */
+    color: white;
+}
+
+#modal-confirm-button:hover {
+    background-color: #388E3C; /* Darker Green */
+}
+
+body.dark-mode #modal-confirm-button {
+    background-color: #8BC34A; /* Light Green */
+}
+body.dark-mode #modal-confirm-button:hover {
+    background-color: #689F38; /* Darker Light Green */
+}
+
+
+#modal-cancel-button {
+    background-color: #F44336; /* Red */
+    color: white;
+}
+
+#modal-cancel-button:hover {
+    background-color: #D32F2F; /* Darker Red */
+}
+
+body.dark-mode #modal-cancel-button {
+    background-color: #EF5350; /* Red Light */
+}
+body.dark-mode #modal-cancel-button:hover {
+    background-color: #E53935; /* Darker Red Light */
+}
+
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    #main-layout-wrapper {
+        flex-direction: column; /* Stack app-container and sidebar vertically */
+        align-items: center; /* Center them horizontally */
+        max-width: 100%; /* Allow full width */
+    }
+
+    #app-container, #sidebar {
+        max-width: 100%; /* Allow full width */
+        width: 100%;
+        padding: 15px; /* Adjust padding for smaller screens */
+    }
+
+    #dark-mode-toggle {
+        top: 10px;
+        right: 10px;
+        padding: 6px 12px;
+    }
+
+    h1 {
+        font-size: 1.8em;
+    }
+
+    #search-container {
+        flex-direction: column; /* Stack search input and dropdown verticaly if needed */
+        gap: 5px;
+    }
+
+    #search-input {
+        width: 100%; /* Ensure search input takes full width */
+    }
+
+    #search-results-dropdown {
+        position: static; /* Allow it to flow naturally in the document */
+        width: 100%;
+        max-width: none; /* No max width */
+    }
+
+    #layout-controls {
+        flex-wrap: wrap; /* Allow radio buttons to wrap */
+        justify-content: space-around;
+        gap: 10px;
+    }
+
+    #card-slots-grid {
+        gap: 10px; /* Smaller gap for smaller screens */
+        padding: 5px;
+    }
+
+    .modal-content {
+        padding: 20px;
+    }
+}

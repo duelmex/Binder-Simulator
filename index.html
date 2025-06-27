@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Card Binder Simulator</title>
+    <!-- External Stylesheet for better caching and organization -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Dark Mode Toggle Button (positioned globally) -->
+    <button id="dark-mode-toggle">Toggle Dark Mode</button>
+
+    <!-- Main Layout Wrapper: Contains both the main app content and the action sidebar -->
+    <div id="main-layout-wrapper">
+        <!-- Main application container (holds search, binder, layout, capacity, pagination) -->
+        <div id="app-container">
+            <h1>Binder Simulator</h1>
+
+            <!-- Search functionality -->
+            <div id="search-container">
+                <!-- Removed 'disabled' attribute here to allow JS to control it -->
+                <input type="text" id="search-input" placeholder="Search Pokémon cards (e.g., Charizard)...">
+                <div id="search-results-dropdown"></div>
+            </div>
+
+            <!-- Draggable card preview area -->
+            <div id="draggable-card-preview" style="display: none;">
+                <img id="draggable-card-preview-image" src="" alt="Selected Card Preview" draggable="true" style="display: none;">
+            </div>
+
+            <!-- Add Next Button -->
+            <button id="add-next-button" class="action-button" style="display: none;">Add to Next Empty Slot</button>
+
+            <!-- Binder Layout Controls (MOVED HERE) -->
+            <p class="control-group-label">Binder Layout:</p>
+            <div id="layout-controls">
+                <label>
+                    <input type="radio" name="gridSize" value="2"> 2x2
+                </label>
+                <label>
+                    <input type="radio" name="gridSize" value="3"> 3x3
+                </label>
+                <label>
+                    <input type="radio" name="gridSize" value="4"> 4x4
+                </label>
+            </div>
+            <span id="layout-message">Please select a binder layout to begin!</span>
+
+            <!-- Binder area -->
+            <div id="binder-container" class="drop-area">
+                <p id="empty-binder-message">Drag & drop your card images here or or from the search results!</p>
+                <div id="card-slots-grid">
+                    <!-- Card slots will be dynamically generated here by JS -->
+                    <!-- NEW: Element for the drag-and-drop insert highlight -->
+                    <div id="insert-highlight" class="insert-highlight"></div>
+                </div>
+            </div>
+
+            <!-- Other Controls (remain below binder) -->
+            <div id="capacity-controls">
+                <label for="total-slots-input">Total Slots:</label>
+                <input type="number" id="total-slots-input" min="0" value="0">
+                <button id="set-capacity-button" class="action-button" disabled>Set Capacity</button>
+                <span id="cards-tracker">Cards: 0 / 0 slots used</span>
+            </div>
+
+            <div id="pagination-controls">
+                <button id="first-page-button" disabled>&laquo;&laquo;</button>
+                <button id="prev-page-button" disabled>&laquo;</button>
+                <span id="page-indicator">Page 1 of 1</span>
+                <button id="next-page-button" disabled>&raquo;</button>
+                <button id="last-page-button" disabled>&raquo;&raquo;</button>
+            </div>
+
+            <!-- Hidden canvas for image processing -->
+            <canvas id="hidden-canvas" style="display:none;"></canvas>
+        </div>
+
+        <!-- Sidebar for ONLY Action Buttons (adjacent to app-container) -->
+        <div id="sidebar">
+            <p class="control-group-label">Actions:</p>
+            <div id="action-buttons">
+                <button id="add-page-button" class="action-button">Add Page</button>
+                <button id="sort-by-hue-button" class="action-button" disabled>Sort by Hue (Rows)</button>
+                <button id="sort-by-hue-column-button" class="action-button" disabled>Sort by Hue (Columns)</button>
+                <button id="undo-button" class="action-button" disabled>Undo</button>
+                <button id="export-binder-button" class="action-button" disabled>Export Binder</button>
+                <button id="import-binder-button" class="action-button">Import Binder</button>
+                <button id="import-pricecharting-button" class="action-button">Import PriceCharting CSV</button>
+                <input type="file" id="import-pricecharting-file-input" accept=".csv" style="display: none;">
+                <button id="clear-all-button" class="action-button" disabled>Clear All</button>
+                <input type="file" id="import-file-input" accept=".json" style="display: none;">
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal for Confirmations -->
+    <div id="custom-modal" class="modal">
+        <div class="modal-content">
+            <p id="modal-message"></p>
+            <div class="modal-buttons">
+                <button id="modal-confirm-button">Yes</button>
+                <button id="modal-cancel-button">No</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p id="loading-message">Processing...</p>
+        <span id="loading-progress" style="font-size: 0.9em; margin-top: 5px;"></span>
+        <!-- New: Progress Bar container -->
+        <div id="progress-bar-container">
+            <div id="progress-bar"></div>
+        </div>
+        <button id="cancel-import-button" style="display: none;">Cancel Import</button>
+    </div>
+
+    <!-- External JavaScript file for all logic -->
+    <script src="script.js" defer></script>
+</body>
+</html>
