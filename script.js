@@ -753,12 +753,16 @@ class Binder {
     }
 
     /**
-     * Handles the dragend event for internal card moves.
-     * Cleans up the 'dragging' class.
+     * Handles the dragend event for internal card moves and preview image drags.
+     * Cleans up the 'dragging' class and related states.
      * @param {DragEvent} e - The dragend event.
      */
-    handleCardMoveDragEnd(e) {
-        if (e.target) e.target.classList.remove('dragging'); // Ensure target exists
+    handleGlobalDragEnd(e) {
+        // Remove dragging class from whatever element was dragged
+        if (e.target) {
+            e.target.classList.remove('dragging');
+            e.target.classList.remove('dragging-preview-image'); // New: for preview image
+        }
         // Clear page turn timer and tracking when drag ends
         clearTimeout(this.pageTurnTimer);
         this.pageTurnTimer = null;
@@ -769,6 +773,8 @@ class Binder {
         if (activeTargetSlot) {
             activeTargetSlot.classList.remove('is-drop-target');
         }
+        // Reset the touch dragging flag if it was set
+        this.isTouchDraggingPreview = false;
     }
 
     /**
@@ -862,12 +868,13 @@ class Binder {
         if (droppedText) {
             try {
                 const parsedData = JSON.parse(droppedText);
-                if (parsedData?.imageUrl) {
+                // Check if it's a card object from our preview or a general JSON
+                if (parsedData?.imageUrl && parsedData.name !== undefined && parsedData.setName !== undefined && parsedData.cardNumber !== undefined) {
                     cardData = { 
                         imageUrl: parsedData.imageUrl, 
-                        name: parsedData.name || 'Dropped Card', 
-                        setName: parsedData.setName || '', 
-                        cardNumber: parsedData.cardNumber || '',
+                        name: parsedData.name, 
+                        setName: parsedData.setName, 
+                        cardNumber: parsedData.cardNumber,
                         isDirectImage: this.isLikelyImageUrl(parsedData.imageUrl)
                     };
                 }
@@ -1779,6 +1786,8 @@ class Binder {
                     dom.draggableCardPreviewImage.style.height = '100%';
                     dom.draggableCardPreviewImage.style.objectFit = 'contain';
                     dom.draggableCardPreviewImage.style.borderRadius = '10px'; // Matching slot image border radius
+                    // NEW: Store the full card data on the draggable preview image
+                    dom.draggableCardPreviewImage.dataset.cardData = JSON.stringify(card);
                 }
                 if (dom.draggableCardPreview) {
                     // Apply container sizing and styling to match card slots
@@ -1802,6 +1811,9 @@ class Binder {
                 this.updateActionButtonsState();
                 if (dom.searchInput) dom.searchInput.value = card.name;
                 dom.searchResultsDropdown.style.display = 'none'; // Hide dropdown after selection
+                
+                // Ensure touch drag listeners are added after setting the card data
+                this.addTouchDragListenersToPreview();
             });
             dom.searchResultsDropdown.appendChild(item);
         });
@@ -1835,7 +1847,7 @@ class Binder {
                 preview.style.position = 'fixed'; 
                 preview.style.zIndex = '10000'; // Ensure it's on top
                 preview.style.cursor = 'grabbing';
-                preview.classList.add('dragging'); // Add a class for visual feedback
+                preview.classList.add('dragging-preview-image'); // Use specific class for preview dragging
                 // Clear any lingering absolute positioning or transforms from initial display
                 preview.style.left = `${rect.left}px`;
                 preview.style.top = `${rect.top}px`;
@@ -1889,7 +1901,8 @@ class Binder {
                 if (dom.draggableCardPreview) dom.draggableCardPreview.style.display = 'none';
                 if (dom.draggableCardPreview) dom.draggableCardPreview.classList.remove('active');
                 if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.src = '';
-                if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.style.display = 'none';
+                if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.classList.remove('dragging-preview-image'); // Remove class
+                if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.removeAttribute('data-card-data'); // Clear data
                 this.updateActionButtonsState();
                 return; // Exit if not actively dragging
             }
@@ -1905,7 +1918,8 @@ class Binder {
                 if (dom.draggableCardPreview) dom.draggableCardPreview.style.display = 'none';
                 if (dom.draggableCardPreview) dom.draggableCardPreview.classList.remove('active');
                 if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.src = '';
-                if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.style.display = 'none';
+                if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.classList.remove('dragging-preview-image'); // Remove class
+                if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.removeAttribute('data-card-data'); // Clear data
                 this.updateActionButtonsState();
                 return; // Exit if no valid touch point
             }
@@ -1960,7 +1974,7 @@ class Binder {
             preview.style.top = '';
             preview.style.zIndex = '';
             preview.style.cursor = '';
-            preview.classList.remove('dragging');
+            preview.classList.remove('dragging-preview-image'); // Remove the specific dragging class
             if (dom.binderContainer) dom.binderContainer.classList.remove('highlight');
 
             // Reset and hide preview
@@ -1968,7 +1982,7 @@ class Binder {
             if (dom.draggableCardPreview) dom.draggableCardPreview.style.display = 'none';
             if (dom.draggableCardPreview) dom.draggableCardPreview.classList.remove('active');
             if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.src = '';
-            if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.style.display = 'none';
+            if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.removeAttribute('data-card-data'); // Clear the data attribute
             this.updateActionButtonsState();
         };
         
@@ -2172,6 +2186,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             binderAppInstance.selectedCardForAdd = null;
             if (dom.draggableCardPreview) dom.draggableCardPreview.style.display = 'none';
             if (dom.draggableCardPreview) dom.draggableCardPreview.classList.remove('active');
+            // Clear preview data attributes as well
+            if (dom.draggableCardPreviewImage) {
+                dom.draggableCardPreviewImage.src = '';
+                dom.draggableCardPreviewImage.removeAttribute('data-card-data');
+            }
             binderAppInstance.updateActionButtonsState();
         }
     });
@@ -2306,14 +2325,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Not near an edge, or moved away from an edge, clear timer
                 binderAppInstance.lastPageTurnedTo = -1; // Reset tracking
                 clearTimeout(binderAppInstance.pageTurnTimer);
-                binderAppInstance.pageTurnTimer = null;
+                binderAppInstance.pageTurner = null;
             }
         });
 
         dom.binderContainer.addEventListener('dragleave', (e) => {
             e.stopPropagation();
             dom.binderContainer.classList.remove('highlight');
-            clearTimeout(binderAppInstance.pageTurnTimer); // Clear timer if drag leaves the container entirely
+            clearTimeout(binderAppInstance.pageTurner); // Clear timer if drag leaves the container entirely
             binderAppInstance.pageTurnTimer = null; 
             binderAppInstance.lastPageTurnedTo = -1; // Reset tracking
         });
@@ -2332,7 +2351,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Event delegation for drag highlight on card slots
     if (dom.cardSlotsGrid) {
         dom.cardSlotsGrid.addEventListener('dragstart', (e) => binderAppInstance.handleCardMoveDragStart(e));
-        dom.cardSlotsGrid.addEventListener('dragend', (e) => binderAppInstance.handleCardMoveDragEnd(e));
+        dom.cardSlotsGrid.addEventListener('dragend', (e) => binderAppInstance.handleGlobalDragEnd(e)); // Using global drag end now
 
         dom.cardSlotsGrid.addEventListener('dragover', (e) => {
             e.preventDefault(); // Allow drop
@@ -2381,6 +2400,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
+
+    // NEW: Add dragstart listener to the draggable-card-preview-image
+    if (dom.draggableCardPreviewImage) {
+        dom.draggableCardPreviewImage.addEventListener('dragstart', (e) => {
+            e.stopPropagation(); // Prevent event from bubbling up and potentially causing unintended behavior
+            const cardData = e.target.dataset.cardData; // Get the full card data JSON string
+            if (cardData) {
+                e.dataTransfer.setData('text/plain', cardData);
+                e.dataTransfer.effectAllowed = 'copy'; // Indicate that this is a copy operation
+                e.target.classList.add('dragging-preview-image'); // Add a class for visual feedback
+                binderAppInstance.isTouchDraggingPreview = true; // Set the flag to true (for consistency, even though it's desktop drag)
+            } else {
+                e.preventDefault(); // Prevent drag if no card data is available
+            }
+        });
+        // Attach the global dragend handler to the preview image as well
+        dom.draggableCardPreviewImage.addEventListener('dragend', (e) => binderAppInstance.handleGlobalDragEnd(e));
+    }
+
 
     // Keyboard shortcuts for Undo (Ctrl+Z) and Paste (Ctrl+V)
     document.addEventListener('keydown', (e) => {
