@@ -1510,7 +1510,7 @@ class Binder {
             console.error('[Global Search Error] Exception during search:', error, `(Request ID: ${requestId})`);
             // Display error message in the dropdown for network/fetch failures
             if (dom.searchResultsDropdown) {
-                dom.searchResultsDropdown.innerHTML = '<div class="search-result-item no-results-message" style="color: red;">Error searching cards.</div>';
+                dom.searchResultsDropdown.innerHTML = '<div class="search-result-item no-results-message" style="color: red;">Error searching cards. Please try again.</div>';
                 dom.searchResultsDropdown.style.display = 'block';
             }
             return []; 
@@ -1823,6 +1823,7 @@ class Binder {
         const onTouchStart = (e) => {
             if (e.touches.length === 1) {
                 e.preventDefault(); // Prevent scrolling and text selection
+                e.stopPropagation(); // Stop propagation
                 this.isTouchDraggingPreview = true;
 
                 // Calculate offset from touch point to the element's top-left corner
@@ -1850,6 +1851,7 @@ class Binder {
         const onTouchMove = (e) => {
             if (this.isTouchDraggingPreview) {
                 e.preventDefault(); // Prevent scrolling while dragging
+                e.stopPropagation(); // Stop propagation
                 const touch = e.touches[0];
                 // Update position relative to the viewport
                 preview.style.left = `${touch.clientX - this.touchDragOffsetX}px`;
@@ -1866,10 +1868,11 @@ class Binder {
         };
 
         const onTouchEnd = async (e) => {
-            // IMPORTANT: Only prevent default if a drag was initiated.
+            // IMPORTANT: Only prevent default and stop propagation if a drag was initiated.
             // This stops the browser from treating the touch as a click on the image link.
             if (this.isTouchDraggingPreview) {
                 e.preventDefault(); 
+                e.stopPropagation(); // Stop propagation
             }
 
             // Remove global listeners
@@ -2254,7 +2257,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         binderAppInstance.saveBinderState();
                         binderAppInstance.saveStateToHistory();
                         binderAppInstance.lastPageTurnedTo = binderAppInstance.currentPage; // Update tracking
-                        binderAppInstance.pageTurnTimer = null; // Reset timer after action
+                        binderAppInstance.pageTurner = null; // Reset timer after action
                     }, PAGE_TURN_DELAY);
                 }
             } else {
