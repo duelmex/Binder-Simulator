@@ -53,7 +53,7 @@ const dom = getElements([
     'last-page-button',
     'progress-bar',
     'progress-bar-container',
-    'insert-highlight', // NEW: Added for the drag-and-drop highlight
+    'insert-highlight', // NEW: Added for the drag-and-drop highlight (now functionally unused for insert)
     'custom-modal', // Added for custom confirmation modal
     'modal-message',
     'modal-confirm-button',
@@ -177,6 +177,7 @@ class Binder {
         this.isTouchDraggingPreview = false;
         this.touchDragOffsetX = 0;
         this.touchDragOffsetY = 0;
+        this.touchListenersAdded = false; // Flag to track if touch listeners are attached to the preview
     }
 
     /**
@@ -687,14 +688,15 @@ class Binder {
         const cardObject = { imageUrl, name: cardName, setName, cardNumber, hue, isDirectImage };
 
         let actualTargetIndex = targetIndex;
-        // If no targetIndex is provided, find the next empty spot or append
-        if (actualTargetIndex === undefined || actualTargetIndex === -1) { 
+        // If no targetIndex is provided (e.g., "Add to Next Empty Slot" button or drop on general binder background),
+        // find the next empty spot or append.
+        if (actualTargetIndex === undefined || actualTargetIndex === -1) {
             let firstEmptyIndex = this.cardsData.indexOf(null);
             actualTargetIndex = (firstEmptyIndex !== -1) ? firstEmptyIndex : this.cardsData.length;
         }
-        
-        // Ensure array is large enough to insert at actualTargetIndex
-        const oldLength = this.cardsData.length; 
+
+        // Ensure array is large enough to set at actualTargetIndex
+        const oldLength = this.cardsData.length;
         const minLengthForTarget = actualTargetIndex + 1;
         if (this.cardsData.length < minLengthForTarget) {
             this.cardsData.length = minLengthForTarget;
@@ -702,14 +704,10 @@ class Binder {
             this.cardsData.fill(null, oldLength);
         }
 
-        // If the target slot is already occupied, insert and shift. Otherwise, just place.
-        if (this.cardsData[actualTargetIndex] !== null && actualTargetIndex < this.cardsData.length) {
-            this.cardsData.splice(actualTargetIndex, 0, cardObject);
-        } else {
-            this.cardsData[actualTargetIndex] = cardObject;
-        }
+        // Always place/replace at the actualTargetIndex.
+        this.cardsData[actualTargetIndex] = cardObject;
 
-        // After adding/splicing, ensure overall array length is a multiple of cardsPerPage
+        // After adding, ensure overall array length is a multiple of cardsPerPage
         const currentLength = this.cardsData.length;
         if (currentLength % this.cardsPerPage !== 0) {
             const newAlignedLength = Math.ceil(currentLength / this.cardsPerPage) * this.cardsPerPage;
@@ -718,7 +716,7 @@ class Binder {
                  this.cardsData.length = newAlignedLength;
                  this.cardsData.fill(null, currentLength); // Fill new space with nulls
             } else if (newAlignedLength < currentLength) {
-                // If it shrunk somehow (e.g., bug, but a safeguard), trim it
+                // This case ideally shouldn't happen with this logic, but as a safeguard, trim it.
                 this.cardsData.length = newAlignedLength;
             }
         }
@@ -845,28 +843,18 @@ class Binder {
 
         // External drop handling (from search results, file, URL)
         let cardData = null; // Object to hold {imageUrl, name, setName, cardNumber, isDirectImage}
-        let dropGlobalIndex = -1; // This will be the index where the card is placed or inserted
+        let dropGlobalIndex; // This will be the index where the card is placed or inserted
 
         const targetSlotElement = e.target.closest('.card-slot');
         if (targetSlotElement) {
-             const localIndex = Array.from(dom.cardSlotsGrid.children).indexOf(targetSlotElement);
-             // Determine precise insertion index based on mouse position within the slot for external drops
-             const slotRect = targetSlotElement.getBoundingClientRect();
-             const xInSlot = e.clientX - slotRect.left;
-             
-             if (xInSlot < slotRect.width / 2) {
-                 // Insert before the current slot
-                 dropGlobalIndex = (this.currentPage - 1) * this.cardsPerPage + localIndex;
-             } else {
-                 // Insert after the current slot
-                 dropGlobalIndex = (this.currentPage - 1) * this.cardsPerPage + localIndex + 1;
-             }
-         } else {
-             // If dropped directly on the binder-container but not a slot,
-             // find the next empty slot or append to the end.
-             let firstEmptyIndex = this.cardsData.indexOf(null);
-             dropGlobalIndex = firstEmptyIndex !== -1 ? firstEmptyIndex : this.cardsData.length;
-         }
+            // Dropped directly on a card slot - replace or fill this specific slot
+            const localIndex = Array.from(dom.cardSlotsGrid.children).indexOf(targetSlotElement);
+            dropGlobalIndex = (this.currentPage - 1) * this.cardsPerPage + localIndex;
+        } else {
+            // Dropped on the binder-container but not a specific card slot - find next empty or append
+            let firstEmptyIndex = this.cardsData.indexOf(null);
+            dropGlobalIndex = firstEmptyIndex !== -1 ? firstEmptyIndex : this.cardsData.length;
+        }
 
 
         // Try to parse from JSON (from search preview or copied card data)
@@ -1114,8 +1102,7 @@ class Binder {
             return a.hue - b.hue;
         });
 
-        // Create a fresh array based on the original total slots, filled with nulls
-        const newCardsData = new Array(initialTotalSlots).fill(null);
+        const newCardsData = new Array(initialTotalSlots).fill(null); // Create a fresh array based on initial total slots
         
         // Place the sorted cards sequentially (row-major order in the linear array)
         cardsToProcess.forEach((card, index) => {
@@ -1382,13 +1369,9 @@ class Binder {
         const performSearchRequest = async (query) => { 
             await new Promise(resolve => setTimeout(resolve, 500)); // Increased delay to 500ms
 
-            // You might need an API key for higher rate limits with pokemontcg.io
-            // const API_KEY = 'YOUR_POKEMONTCG_IO_API_KEY'; // Uncomment and replace if you have one
-            // const headers = API_KEY ? { 'X-Api-Key': API_KEY } : {};
-
             const apiUrl = `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(query)}&pageSize=1`;
             try {
-                const response = await fetch(apiUrl); // Add { headers } if using an API key
+                const response = await fetch(apiUrl);
                 if (!response.ok) {
                     console.error(`API search failed for query: "${query}" with status: ${response.status}`);
                     return null;
@@ -1454,34 +1437,41 @@ class Binder {
     
     /**
      * Performs a search against the Pokémon TCG API (pokemontcg.io) for the global search bar.
-     * This function only fetches data and processes it, it does NOT update the DOM directly.
      * @param {string} query The search query string.
-     * @returns {Promise<Array<Object>>} An array of card objects found. Returns an empty array if no results,
-     * throws an error if the API call fails.
+     * @returns {Promise<Array<Object>>} An array of card objects found.
      */
     async performSearch(query) {
         const requestId = ++this.currentSearchRequestId; 
         const originalQuery = query.trim();
 
         if (originalQuery.length < 2) { 
-            return []; // Too short, no results
+            // Hide dropdown and return empty if query is too short
+            if (dom.searchResultsDropdown) {
+                dom.searchResultsDropdown.innerHTML = '';
+                dom.searchResultsDropdown.style.display = 'none';
+            }
+            return [];
         }
 
+        // Display "Searching..." message directly in the dropdown
+        if (dom.searchResultsDropdown) {
+            dom.searchResultsDropdown.innerHTML = '<div class="search-result-item loading-message">Searching...</div>';
+            dom.searchResultsDropdown.style.display = 'block';
+        }
+
+        // Clean the query for API call: remove punctuation and replace multiple spaces with single space
         const cleanedQueryForApi = originalQuery.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").replace(/\s{2,}/g, " ");
 
         try {
-            // You might need an API key for higher rate limits with pokemontcg.io
-            // const API_KEY = 'YOUR_POKEMONTCG_IO_API_KEY'; // Uncomment and replace if you have one
-            // const headers = API_KEY ? { 'X-Api-Key': API_KEY } : {};
-
+            // Use name:* wildcard for broader matching and increased page size
             const apiUrl = `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(cleanedQueryForApi)}*&pageSize=20`; 
             console.log(`[Global Search Debug] Fetching from: ${apiUrl} (Request ID: ${requestId})`);
-            const response = await fetch(apiUrl); // Add { headers } if using an API key
+            const response = await fetch(apiUrl);
             console.log(`[Global Search Debug] Fetch response received (Request ID: ${requestId}). Status: ${response.status}`);
 
             if (!response.ok) {
-                // Throw an error here so the calling function can catch it and display an error message
-                throw new Error(`API search failed: ${response.status} ${response.statusText}`);
+                console.error(`[Global Search Error] API search failed for query: "${query}" with status: ${response.status} (${response.statusText})`);
+                return []; 
             }
             const data = await response.json();
             console.log(`[Global Search Debug] JSON parsed for global search (Request ID: ${requestId}). Data:`, data);
@@ -1509,15 +1499,21 @@ class Binder {
                     console.log(`[Global Search Debug] Hue calculation complete for request (${requestId}).`);
                     return resultsWithHue;
                 } else {
-                    return []; // No data found, but API call was successful
+                    console.log(`[Global Search Debug] No data found for request (${requestId}).`);
+                    return [];
                 }
             } else {
                 console.log(`[Global Search] Ignoring old search request (${requestId}). Latest is ${this.currentSearchRequestId}`);
-                return []; // Ignore old requests silently
+                return []; 
             }
         } catch (error) {
             console.error('[Global Search Error] Exception during search:', error, `(Request ID: ${requestId})`);
-            throw error; // Re-throw to be caught by the event listener
+            // Display error message in the dropdown for network/fetch failures
+            if (dom.searchResultsDropdown) {
+                dom.searchResultsDropdown.innerHTML = '<div class="search-result-item no-results-message" style="color: red;">Error searching cards.</div>';
+                dom.searchResultsDropdown.style.display = 'block';
+            }
+            return []; 
         }
     }
 
@@ -1720,33 +1716,25 @@ class Binder {
         dom.searchResultsDropdown.innerHTML = ''; // Clear previous results
         dom.searchResultsDropdown.style.display = 'block'; // Always show dropdown if a message/results are to be displayed
 
+        // Ensure the preview and add button are hidden initially for any status display
+        if (dom.addNextButton) dom.addNextButton.style.display = 'none';
+        this.selectedCardForAdd = null;
+        if (dom.draggableCardPreview) dom.draggableCardPreview.style.display = 'none';
+        if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.src = '';
+        if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.style.display = 'none';
+
         if (status === 'loading') {
             dom.searchResultsDropdown.innerHTML = '<div class="search-result-item loading-message">Searching...</div>';
-            if (dom.addNextButton) dom.addNextButton.style.display = 'none';
-            this.selectedCardForAdd = null;
-            if (dom.draggableCardPreview) dom.draggableCardPreview.style.display = 'none';
-            if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.src = '';
-            if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.style.display = 'none';
             return;
         }
 
         if (status === 'no-results') {
             dom.searchResultsDropdown.innerHTML = '<div class="search-result-item no-results-message">No results found.</div>';
-            if (dom.addNextButton) dom.addNextButton.style.display = 'none';
-            this.selectedCardForAdd = null;
-            if (dom.draggableCardPreview) dom.draggableCardPreview.style.display = 'none';
-            if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.src = '';
-            if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.style.display = 'none';
             return;
         }
 
         if (status === 'error') {
             dom.searchResultsDropdown.innerHTML = '<div class="search-result-item no-results-message" style="color: red;">Error searching cards. Please try again.</div>';
-            if (dom.addNextButton) dom.addNextButton.style.display = 'none';
-            this.selectedCardForAdd = null;
-            if (dom.draggableCardPreview) dom.draggableCardPreview.style.display = 'none';
-            if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.src = '';
-            if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.style.display = 'none';
             return;
         }
 
@@ -1784,21 +1772,32 @@ class Binder {
                 this.selectedCardForAdd = card;
                 if (dom.draggableCardPreviewImage) {
                     dom.draggableCardPreviewImage.src = card.imageUrl;
-                    dom.draggableCardPreviewImage.style.display = 'block';
+                    dom.draggableCardPreviewImage.alt = card.name || 'Selected Card Preview'; // Set alt text
+                    dom.draggableCardPreviewImage.style.display = 'block'; // Make the image itself visible
+                    // Apply sizing and styling to match card slots
+                    dom.draggableCardPreviewImage.style.width = '100%';
+                    dom.draggableCardPreviewImage.style.height = '100%';
+                    dom.draggableCardPreviewImage.style.objectFit = 'contain';
+                    dom.draggableCardPreviewImage.style.borderRadius = '10px'; // Matching slot image border radius
                 }
                 if (dom.draggableCardPreview) {
-                    // Position the draggable preview initially relative to the clicked item
-                    const itemRect = item.getBoundingClientRect();
-                    const appRect = dom.appContainer.getBoundingClientRect(); // Or a more suitable reference
-
-                    dom.draggableCardPreview.style.position = 'absolute'; // For positioning
-                    dom.draggableCardPreview.style.left = `${itemRect.left - appRect.left}px`;
-                    dom.draggableCardPreview.style.top = `${itemRect.top - appRect.top}px`;
-                    dom.draggableCardPreview.style.transform = 'none'; // Clear any previous transforms
-
-                    dom.draggableCardPreview.classList.add('active'); // Show it
-                    // Attach touch listeners to the preview after it becomes active and visible
-                    this.addTouchDragListenersToPreview();
+                    // Apply container sizing and styling to match card slots
+                    dom.draggableCardPreview.style.display = 'flex'; 
+                    dom.draggableCardPreview.style.width = '150px'; // Max width of a card slot
+                    dom.draggableCardPreview.style.aspectRatio = '150 / 210'; // Aspect ratio for a typical card
+                    dom.draggableCardPreview.style.border = '2px solid #B0BEC5';
+                    dom.draggableCardPreview.style.borderRadius = '12px';
+                    dom.draggableCardPreview.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                    dom.draggableCardPreview.style.justifyContent = 'center';
+                    dom.draggableCardPreview.style.alignItems = 'center';
+                    dom.draggableCardPreview.style.overflow = 'hidden';
+                    dom.draggableCardPreview.style.backgroundColor = '#ECEFF1';
+                    
+                    dom.draggableCardPreview.classList.add('active');
+                }
+                // Show the "Add to Next Empty Slot" button
+                if (dom.addNextButton) {
+                    dom.addNextButton.style.display = 'inline-block';
                 }
                 this.updateActionButtonsState();
                 if (dom.searchInput) dom.searchInput.value = card.name;
@@ -1813,7 +1812,11 @@ class Binder {
      * Attaches touch event listeners for dragging the selected card preview on mobile.
      */
     addTouchDragListenersToPreview() {
-        if (!dom.draggableCardPreview || this.touchListenersAdded) return; // Prevent duplicate listeners
+        if (!dom.draggableCardPreview || this.touchListenersAdded) {
+            // console.log("Touch listeners already added or preview element not found. Skipping.");
+            return; // Prevent duplicate listeners
+        }
+        console.log("Attaching touch listeners to draggable card preview.");
 
         const preview = dom.draggableCardPreview;
 
@@ -1827,11 +1830,17 @@ class Binder {
                 this.touchDragOffsetX = e.touches[0].clientX - rect.left;
                 this.touchDragOffsetY = e.touches[0].clientY - rect.top;
 
-                preview.style.position = 'fixed'; // Change to fixed for dragging over entire viewport
+                // Set position to fixed for dragging freely over the viewport
+                preview.style.position = 'fixed'; 
                 preview.style.zIndex = '10000'; // Ensure it's on top
                 preview.style.cursor = 'grabbing';
                 preview.classList.add('dragging'); // Add a class for visual feedback
+                // Clear any lingering absolute positioning or transforms from initial display
+                preview.style.left = `${rect.left}px`;
+                preview.style.top = `${rect.top}px`;
+                preview.style.transform = 'none'; // Ensure no default transform interferes with fixed positioning
                 
+                // Add global listeners for move and end to capture touches outside the element
                 document.body.addEventListener('touchmove', onTouchMove, { passive: false });
                 document.body.addEventListener('touchend', onTouchEnd);
                 document.body.addEventListener('touchcancel', onTouchEnd); // Handle interruptions
@@ -1857,12 +1866,14 @@ class Binder {
         };
 
         const onTouchEnd = async (e) => {
+            // Remove global listeners
             document.body.removeEventListener('touchmove', onTouchMove);
             document.body.removeEventListener('touchend', onTouchEnd);
             document.body.removeEventListener('touchcancel', onTouchEnd);
 
             this.isTouchDraggingPreview = false;
-            preview.style.position = 'relative'; // Reset position
+            // Reset preview styling for its default position (hidden after drop)
+            preview.style.position = ''; 
             preview.style.left = '';
             preview.style.top = '';
             preview.style.zIndex = '';
@@ -1873,23 +1884,23 @@ class Binder {
 
             const touch = e.changedTouches[0];
             if (touch && this.selectedCardForAdd) { // Ensure there's a touch and a card selected
-                const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-                let dropTargetIndex = -1; // Default to next empty slot
+                let dropTargetIndex = -1; // Default to 'no valid target'
 
+                const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
                 if (targetElement) {
                     const slotElement = targetElement.closest('.card-slot');
                     if (slotElement) {
+                        // Dropped directly on a card slot - replace or fill this specific slot
                         const localIndex = Array.from(dom.cardSlotsGrid.children).indexOf(slotElement);
-                        const currentPageStartIndex = (this.currentPage - 1) * this.cardsPerPage;
-                        dropTargetIndex = currentPageStartIndex + localIndex;
+                        dropTargetIndex = (this.currentPage - 1) * this.cardsPerPage + localIndex;
                     } else if (targetElement.closest('#binder-container')) {
-                        // Dropped on the general binder area, find next empty slot
-                        dropTargetIndex = this.cardsData.indexOf(null);
-                        if (dropTargetIndex === -1) dropTargetIndex = this.cardsData.length;
+                        // Dropped on the binder-container but not a specific card slot - find next empty or append
+                        let firstEmptyIndex = this.cardsData.indexOf(null);
+                        dropTargetIndex = firstEmptyIndex !== -1 ? firstEmptyIndex : this.cardsData.length;
                     }
                 }
                 
-                // Only add card if a valid drop zone was found (a slot or binder container)
+                // Only add card if a valid drop zone was found (a slot or binder container leading to an index)
                 if (dropTargetIndex !== -1 && dropTargetIndex !== undefined) {
                     await this.addCardToBinder(
                         this.selectedCardForAdd.imageUrl,
@@ -1897,7 +1908,7 @@ class Binder {
                         this.selectedCardForAdd.setName,
                         this.selectedCardForAdd.cardNumber,
                         true, // Assume image from API is direct
-                        dropTargetIndex
+                        dropTargetIndex // Pass the specific index to replace/fill
                     );
                 }
             }
@@ -1910,6 +1921,8 @@ class Binder {
             this.updateActionButtonsState();
         };
         
+        // Only add the touchstart listener once to the preview element
+        // The move/end/cancel listeners are added/removed from document.body within touchstart/touchend
         preview.addEventListener('touchstart', onTouchStart, { passive: false });
         this.touchListenersAdded = true; // Mark listeners as added
     }
@@ -1932,7 +1945,10 @@ class Binder {
         if (dom.clearAllButton) dom.clearAllButton.disabled = !hasCards;
         if (dom.exportBinderButton) dom.exportBinderButton.disabled = !hasCards;
         if (dom.undoButton) dom.undoButton.disabled = !canUndo;
-        if (dom.addNextButton) dom.addNextButton.disabled = !hasSelectedCardForAdd;
+        // The addNextButton's display is managed directly in renderSearchResults and addNextButton click handler.
+        // Its disabled state is managed here.
+        if (dom.addNextButton) dom.addNextButton.disabled = !hasSelectedCardForAdd; 
+        
         if (dom.setCapacityButton) dom.setCapacityButton.disabled = !hasLayout;
         if (dom.sortByHueButton) dom.sortByHueButton.disabled = !hasCards;
         if (dom.sortByHueColumnButton) dom.sortByHueColumnButton.disabled = !hasCards;
@@ -1995,6 +2011,8 @@ class Binder {
      * Shows and positions the insert highlight element.
      * @param {HTMLElement} targetSlotElement - The card slot element being hovered over.
      * @param {string} insertPosition - 'before' or 'after' the target slot.
+     * This method is now effectively unused for drag-and-drop operations,
+     * but kept in case other features might use a line highlight.
      */
     showInsertHighlight(targetSlotElement, insertPosition) {
         if (!dom.insertHighlight) {
@@ -2170,30 +2188,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         clearTimeout(binderAppInstance.searchTimeout);
         const query = e.target.value.trim();
 
-        if (query.length < 2) {
-            // Hide dropdown if query is too short
-            if (dom.searchResultsDropdown) {
-                dom.searchResultsDropdown.innerHTML = '';
-                dom.searchResultsDropdown.style.display = 'none';
-            }
-            binderAppInstance.selectedCardForAdd = null; // Clear selected card
-            if (dom.draggableCardPreview) dom.draggableCardPreview.style.display = 'none';
-            binderAppInstance.updateActionButtonsState();
-            return;
-        }
-
         binderAppInstance.searchTimeout = setTimeout(async () => {
-            binderAppInstance.renderSearchResults([], query, 'loading'); // Show "Searching..."
+            let results = [];
             try {
-                const results = await binderAppInstance.performSearch(query);
-                if (results.length > 0) {
-                    binderAppInstance.renderSearchResults(results, query, 'success');
-                } else {
-                    binderAppInstance.renderSearchResults([], query, 'no-results');
-                }
+                results = await binderAppInstance.performSearch(query);
             } catch (error) {
                 console.error("Error during debounced search execution:", error);
-                binderAppInstance.renderSearchResults([], query, 'error');
+            } finally {
+                binderAppInstance.renderSearchResults(results, query);
             }
         }, 500); // Debounce delay
     });
@@ -2286,38 +2288,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             e.stopPropagation();
 
             const targetSlotElement = e.target.closest('.card-slot');
-            const isInternalMove = e.dataTransfer.types.includes('text/x-card-move-index');
+            
+            // Clear any existing highlights first (especially the old "insert" line)
+            binderAppInstance.hideInsertHighlight(); 
+            const activeTargetSlot = document.querySelector('.card-slot.is-drop-target');
+            if (activeTargetSlot) {
+                activeTargetSlot.classList.remove('is-drop-target');
+            }
 
             if (targetSlotElement) {
-                if (isInternalMove) {
-                    // If an internal card is being dragged, highlight the target slot for a swap
-                    binderAppInstance.hideInsertHighlight(); // Hide insert highlight
-                    targetSlotElement.classList.add('is-drop-target'); // Add swap highlight
-                } else {
-                    // If an external card is being dragged, show insert highlight
-                    const slotRect = targetSlotElement.getBoundingClientRect();
-                    const xInSlot = e.clientX - slotRect.left;
-                    
-                    if (xInSlot < slotRect.width / 2) {
-                        binderAppInstance.showInsertHighlight(targetSlotElement, 'before');
-                    } else {
-                        binderAppInstance.showInsertHighlight(targetSlotElement, 'after');
-                    }
-                    // Ensure no swap highlight when showing insert highlight
-                    const activeTargetSlot = document.querySelector('.card-slot.is-drop-target');
-                    if (activeTargetSlot) {
-                        activeTargetSlot.classList.remove('is-drop-target');
-                    }
-                }
-            } else {
-                // If not hovering directly over a slot (e.g., in the gap between rows or empty grid space)
-                // Hide both types of highlights
-                binderAppInstance.hideInsertHighlight();
-                const activeTargetSlot = document.querySelector('.card-slot.is-drop-target');
-                if (activeTargetSlot) {
-                    activeTargetSlot.classList.remove('is-drop-target');
-                }
+                // Always highlight the target slot itself for any valid drag
+                targetSlotElement.classList.add('is-drop-target');
             }
+            // If not over a slot, highlights remain hidden, which is desired.
         });
 
         dom.cardSlotsGrid.addEventListener('dragleave', (e) => {
