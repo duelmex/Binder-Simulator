@@ -1892,25 +1892,36 @@ class Binder {
 
 
             const touch = e.changedTouches[0];
+            console.log(`[TouchEnd Debug] Touch ended at: clientX=${touch.clientX}, clientY=${touch.clientY}`);
+
             if (touch && this.selectedCardForAdd) { // Ensure there's a touch and a card selected
                 let dropTargetIndex = -1; // Default to 'no valid target'
 
                 const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+                console.log(`[TouchEnd Debug] Element at touch point:`, targetElement);
+
                 if (targetElement) {
                     const slotElement = targetElement.closest('.card-slot');
+                    console.log(`[TouchEnd Debug] Closest card slot element:`, slotElement);
+
                     if (slotElement) {
                         // Dropped directly on a card slot - replace or fill this specific slot
                         const localIndex = Array.from(dom.cardSlotsGrid.children).indexOf(slotElement);
                         dropTargetIndex = (this.currentPage - 1) * this.cardsPerPage + localIndex;
+                        console.log(`[TouchEnd Debug] Dropped on slot. Local Index: ${localIndex}, Global Index: ${dropTargetIndex}`);
                     } else if (targetElement.closest('#binder-container')) {
                         // Dropped on the binder-container but not a specific card slot - find next empty or append
                         let firstEmptyIndex = this.cardsData.indexOf(null);
                         dropTargetIndex = firstEmptyIndex !== -1 ? firstEmptyIndex : this.cardsData.length;
+                        console.log(`[TouchEnd Debug] Dropped on binder container. Next empty/append index: ${dropTargetIndex}`);
+                    } else {
+                        console.log(`[TouchEnd Debug] Dropped outside any valid card slot or binder container.`);
                     }
                 }
                 
                 // Only add card if a valid drop zone was found (a slot or binder container leading to an index)
                 if (dropTargetIndex !== -1 && dropTargetIndex !== undefined) {
+                    console.log(`[TouchEnd Debug] Calling addCardToBinder with index: ${dropTargetIndex}`);
                     await this.addCardToBinder(
                         this.selectedCardForAdd.imageUrl,
                         this.selectedCardForAdd.name,
@@ -1919,7 +1930,11 @@ class Binder {
                         true, // Assume image from API is direct
                         dropTargetIndex // Pass the specific index to replace/fill
                     );
+                } else {
+                    console.log(`[TouchEnd Debug] No valid drop target found. Card not added.`);
                 }
+            } else {
+                console.log(`[TouchEnd Debug] No card selected for add or touch information missing.`);
             }
             // Reset and hide preview
             this.selectedCardForAdd = null;
@@ -2257,7 +2272,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         binderAppInstance.saveBinderState();
                         binderAppInstance.saveStateToHistory();
                         binderAppInstance.lastPageTurnedTo = binderAppInstance.currentPage; // Update tracking
-                        binderAppInstance.pageTurner = null; // Reset timer after action
+                        binderAppInstance.pageTurnTimer = null; // Reset timer after action
                     }, PAGE_TURN_DELAY);
                 }
             } else {
