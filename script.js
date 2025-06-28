@@ -1868,19 +1868,92 @@ class Binder {
         };
 
         const onTouchEnd = async (e) => {
-            // IMPORTANT: Only prevent default and stop propagation if a drag was initiated.
-            // This stops the browser from treating the touch as a click on the image link.
-            if (this.isTouchDraggingPreview) {
-                e.preventDefault(); 
-                e.stopPropagation(); // Stop propagation
-            }
+            // Log entry to confirm this function is always called on touchend
+            console.log(`[TouchEnd Debug] onTouchEnd triggered.`);
 
-            // Remove global listeners
+            // IMPORTANT: Prevent default and stop propagation from the very beginning of touchend
+            // to ensure no default browser action (like opening a link) occurs.
+            e.preventDefault(); 
+            e.stopPropagation();
+
+            // Remove global listeners regardless of drag state
             document.body.removeEventListener('touchmove', onTouchMove);
             document.body.removeEventListener('touchend', onTouchEnd);
             document.body.removeEventListener('touchcancel', onTouchEnd);
 
+            // Only proceed with drop logic if a drag was actively in progress
+            if (!this.isTouchDraggingPreview) {
+                console.log(`[TouchEnd Debug] Drag was not active, no drop logic executed.`);
+                // Reset and hide preview
+                this.selectedCardForAdd = null;
+                if (dom.draggableCardPreview) dom.draggableCardPreview.style.display = 'none';
+                if (dom.draggableCardPreview) dom.draggableCardPreview.classList.remove('active');
+                if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.src = '';
+                if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.style.display = 'none';
+                this.updateActionButtonsState();
+                return; // Exit if not actively dragging
+            }
+
             this.isTouchDraggingPreview = false;
+            
+            // Get the touch point coordinates
+            const touch = e.changedTouches[0];
+            if (!touch) {
+                console.log(`[TouchEnd Debug] No changedTouches[0] found.`);
+                // Reset and hide preview
+                this.selectedCardForAdd = null;
+                if (dom.draggableCardPreview) dom.draggableCardPreview.style.display = 'none';
+                if (dom.draggableCardPreview) dom.draggableCardPreview.classList.remove('active');
+                if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.src = '';
+                if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.style.display = 'none';
+                this.updateActionButtonsState();
+                return; // Exit if no valid touch point
+            }
+
+            console.log(`[TouchEnd Debug] Touch ended at: clientX=${touch.clientX}, clientY=${touch.clientY}`);
+
+            // Temporarily hide the dragging preview from hit testing
+            preview.style.pointerEvents = 'none'; 
+            const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+            preview.style.pointerEvents = 'auto'; // Immediately restore pointer-events
+
+            console.log(`[TouchEnd Debug] Element at touch point (through preview):`, targetElement);
+
+            let dropTargetIndex = -1; // Default to 'no valid target'
+            if (targetElement && this.selectedCardForAdd) { // Ensure there's a target and a card selected
+                const slotElement = targetElement.closest('.card-slot');
+                console.log(`[TouchEnd Debug] Closest card slot element:`, slotElement);
+
+                if (slotElement) {
+                    // Dropped directly on a card slot - replace or fill this specific slot
+                    const localIndex = Array.from(dom.cardSlotsGrid.children).indexOf(slotElement);
+                    dropTargetIndex = (this.currentPage - 1) * this.cardsPerPage + localIndex;
+                    console.log(`[TouchEnd Debug] Dropped on slot. Local Index: ${localIndex}, Global Index: ${dropTargetIndex}`);
+                } else if (targetElement.closest('#binder-container')) {
+                    // Dropped on the binder-container but not a specific card slot - find next empty or append
+                    let firstEmptyIndex = this.cardsData.indexOf(null);
+                    dropTargetIndex = firstEmptyIndex !== -1 ? firstEmptyIndex : this.cardsData.length;
+                    console.log(`[TouchEnd Debug] Dropped on binder container. Next empty/append index: ${dropTargetIndex}`);
+                } else {
+                    console.log(`[TouchEnd Debug] Dropped outside any valid card slot or binder container.`);
+                }
+            }
+            
+            // Only add card if a valid drop zone was found (a slot or binder container leading to an index)
+            if (dropTargetIndex !== -1 && dropTargetIndex !== undefined) {
+                console.log(`[TouchEnd Debug] Calling addCardToBinder with index: ${dropTargetIndex}`);
+                await this.addCardToBinder(
+                    this.selectedCardForAdd.imageUrl,
+                    this.selectedCardForAdd.name,
+                    this.selectedCardForAdd.setName,
+                    this.selectedCardForAdd.cardNumber,
+                    true, // Assume image from API is direct
+                    dropTargetIndex // Pass the specific index to replace/fill
+                );
+            } else {
+                console.log(`[TouchEnd Debug] No valid drop target found. Card not added.`);
+            }
+
             // Reset preview styling for its default position (hidden after drop)
             preview.style.position = ''; 
             preview.style.left = '';
@@ -1890,52 +1963,6 @@ class Binder {
             preview.classList.remove('dragging');
             if (dom.binderContainer) dom.binderContainer.classList.remove('highlight');
 
-
-            const touch = e.changedTouches[0];
-            console.log(`[TouchEnd Debug] Touch ended at: clientX=${touch.clientX}, clientY=${touch.clientY}`);
-
-            if (touch && this.selectedCardForAdd) { // Ensure there's a touch and a card selected
-                let dropTargetIndex = -1; // Default to 'no valid target'
-
-                const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-                console.log(`[TouchEnd Debug] Element at touch point:`, targetElement);
-
-                if (targetElement) {
-                    const slotElement = targetElement.closest('.card-slot');
-                    console.log(`[TouchEnd Debug] Closest card slot element:`, slotElement);
-
-                    if (slotElement) {
-                        // Dropped directly on a card slot - replace or fill this specific slot
-                        const localIndex = Array.from(dom.cardSlotsGrid.children).indexOf(slotElement);
-                        dropTargetIndex = (this.currentPage - 1) * this.cardsPerPage + localIndex;
-                        console.log(`[TouchEnd Debug] Dropped on slot. Local Index: ${localIndex}, Global Index: ${dropTargetIndex}`);
-                    } else if (targetElement.closest('#binder-container')) {
-                        // Dropped on the binder-container but not a specific card slot - find next empty or append
-                        let firstEmptyIndex = this.cardsData.indexOf(null);
-                        dropTargetIndex = firstEmptyIndex !== -1 ? firstEmptyIndex : this.cardsData.length;
-                        console.log(`[TouchEnd Debug] Dropped on binder container. Next empty/append index: ${dropTargetIndex}`);
-                    } else {
-                        console.log(`[TouchEnd Debug] Dropped outside any valid card slot or binder container.`);
-                    }
-                }
-                
-                // Only add card if a valid drop zone was found (a slot or binder container leading to an index)
-                if (dropTargetIndex !== -1 && dropTargetIndex !== undefined) {
-                    console.log(`[TouchEnd Debug] Calling addCardToBinder with index: ${dropTargetIndex}`);
-                    await this.addCardToBinder(
-                        this.selectedCardForAdd.imageUrl,
-                        this.selectedCardForAdd.name,
-                        this.selectedCardForAdd.setName,
-                        this.selectedCardForAdd.cardNumber,
-                        true, // Assume image from API is direct
-                        dropTargetIndex // Pass the specific index to replace/fill
-                    );
-                } else {
-                    console.log(`[TouchEnd Debug] No valid drop target found. Card not added.`);
-                }
-            } else {
-                console.log(`[TouchEnd Debug] No card selected for add or touch information missing.`);
-            }
             // Reset and hide preview
             this.selectedCardForAdd = null;
             if (dom.draggableCardPreview) dom.draggableCardPreview.style.display = 'none';
