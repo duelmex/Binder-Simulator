@@ -1843,8 +1843,8 @@ class Binder {
                 
                 // Add global listeners for move and end to capture touches outside the element
                 document.body.addEventListener('touchmove', onTouchMove, { passive: false });
-                document.body.addEventListener('touchend', onTouchEnd);
-                document.body.addEventListener('touchcancel', onTouchEnd); // Handle interruptions
+                document.body.addEventListener('touchend', onTouchEnd, { passive: false }); // Ensure passive: false for touchend
+                document.body.addEventListener('touchcancel', onTouchEnd, { passive: false }); // Ensure passive: false for touchcancel
             }
         };
 
@@ -1877,9 +1877,9 @@ class Binder {
             e.stopPropagation();
 
             // Remove global listeners regardless of drag state
-            document.body.removeEventListener('touchmove', onTouchMove);
-            document.body.removeEventListener('touchend', onTouchEnd);
-            document.body.removeEventListener('touchcancel', onTouchEnd);
+            document.body.removeEventListener('touchmove', onTouchMove, { passive: false });
+            document.body.removeEventListener('touchend', onTouchEnd, { passive: false });
+            document.body.removeEventListener('touchcancel', onTouchEnd, { passive: false });
 
             // Only proceed with drop logic if a drag was actively in progress
             if (!this.isTouchDraggingPreview) {
