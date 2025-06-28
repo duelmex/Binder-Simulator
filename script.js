@@ -172,7 +172,7 @@ class Binder {
 
         this.pageTurnTimer = null; // For automatic page turning during drag
         this.lastPageTurnedTo = -1; // To prevent immediate re-triggering of page turn on same page
-
+        
         // Touch drag-and-drop variables for the preview image
         this.isTouchDraggingPreview = false;
         this.touchDragOffsetX = 0;
@@ -1866,6 +1866,12 @@ class Binder {
         };
 
         const onTouchEnd = async (e) => {
+            // IMPORTANT: Only prevent default if a drag was initiated.
+            // This stops the browser from treating the touch as a click on the image link.
+            if (this.isTouchDraggingPreview) {
+                e.preventDefault(); 
+            }
+
             // Remove global listeners
             document.body.removeEventListener('touchmove', onTouchMove);
             document.body.removeEventListener('touchend', onTouchEnd);
