@@ -193,6 +193,9 @@ body.dark-mode .search-result-item:hover {
     border-radius: 4px;
     flex-shrink: 0; /* Prevent image from shrinking */
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    -webkit-user-select: none;  /* Disable text selection */
+    user-select: none;          /* Disable text selection */
+    touch-action: none;         /* Prevent default touch actions like scroll/zoom */
 }
 
 .search-result-item .highlight {
@@ -225,7 +228,7 @@ body.dark-mode .search-result-item.no-results-message {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-top: 10px;
+    margin-top: 10px; /* Default margin */
     padding: 10px;
     background-color: #F1F8E9; /* Light Green 50 */
     border: 1px dashed #A5D6A7; /* Green 200 */
@@ -233,11 +236,16 @@ body.dark-mode .search-result-item.no-results-message {
     text-align: center;
     font-size: 0.9em;
     color: #388E3C; /* Green 700 */
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+    transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.1s ease; /* Add transform for dragging */
     cursor: grab;
     width: fit-content;
-    align-self: center; /* Center in parent app-container */
+    align-self: center; /* Center in parent app-container when not fixed */
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    -webkit-user-select: none;  /* Disable text selection */
+    user-select: none;          /* Disable text selection */
+    touch-action: none;         /* Prevent default touch actions like scroll/zoom */
+    position: relative; /* Default position when not dragging fixed */
+    transform: none; /* Ensure no residual transforms */
 }
 
 body.dark-mode #draggable-card-preview {
@@ -250,6 +258,13 @@ body.dark-mode #draggable-card-preview {
     display: flex;
 }
 
+#draggable-card-preview.dragging {
+    cursor: grabbing;
+    transform: scale(1.05) translateZ(0); /* Slight lift and scale when dragging */
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3); /* Stronger shadow when dragging */
+}
+
+
 #draggable-card-preview-image {
     width: 80px; /* Smaller preview image */
     height: 112px; /* Maintain aspect ratio */
@@ -257,6 +272,9 @@ body.dark-mode #draggable-card-preview {
     margin-bottom: 5px;
     border-radius: 6px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    -webkit-user-select: none;  /* Disable text selection */
+    user-select: none;          /* Disable text selection */
+    touch-action: none;         /* Prevent default touch actions like scroll/zoom */
 }
 
 /* Action Button Styles */
@@ -616,6 +634,7 @@ body.dark-mode #page-indicator {
     background-color: #F5F5F5;
     border-radius: 8px;
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    transition: background-color 0.3s ease;
 }
 
 body.dark-mode #capacity-controls {

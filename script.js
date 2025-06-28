@@ -172,6 +172,11 @@ class Binder {
 
         this.pageTurnTimer = null; // For automatic page turning during drag
         this.lastPageTurnedTo = -1; // To prevent immediate re-triggering of page turn on same page
+
+        // Touch drag-and-drop variables for the preview image
+        this.isTouchDraggingPreview = false;
+        this.touchDragOffsetX = 0;
+        this.touchDragOffsetY = 0;
     }
 
     /**
@@ -1782,8 +1787,18 @@ class Binder {
                     dom.draggableCardPreviewImage.style.display = 'block';
                 }
                 if (dom.draggableCardPreview) {
-                    dom.draggableCardPreview.style.display = 'flex';
-                    dom.draggableCardPreview.classList.add('active');
+                    // Position the draggable preview initially relative to the clicked item
+                    const itemRect = item.getBoundingClientRect();
+                    const appRect = dom.appContainer.getBoundingClientRect(); // Or a more suitable reference
+
+                    dom.draggableCardPreview.style.position = 'absolute'; // For positioning
+                    dom.draggableCardPreview.style.left = `${itemRect.left - appRect.left}px`;
+                    dom.draggableCardPreview.style.top = `${itemRect.top - appRect.top}px`;
+                    dom.draggableCardPreview.style.transform = 'none'; // Clear any previous transforms
+
+                    dom.draggableCardPreview.classList.add('active'); // Show it
+                    // Attach touch listeners to the preview after it becomes active and visible
+                    this.addTouchDragListenersToPreview();
                 }
                 this.updateActionButtonsState();
                 if (dom.searchInput) dom.searchInput.value = card.name;
@@ -1792,6 +1807,111 @@ class Binder {
             dom.searchResultsDropdown.appendChild(item);
         });
         dom.searchResultsDropdown.style.display = 'block'; // Ensure dropdown is visible for results
+    }
+
+    /**
+     * Attaches touch event listeners for dragging the selected card preview on mobile.
+     */
+    addTouchDragListenersToPreview() {
+        if (!dom.draggableCardPreview || this.touchListenersAdded) return; // Prevent duplicate listeners
+
+        const preview = dom.draggableCardPreview;
+
+        const onTouchStart = (e) => {
+            if (e.touches.length === 1) {
+                e.preventDefault(); // Prevent scrolling and text selection
+                this.isTouchDraggingPreview = true;
+
+                // Calculate offset from touch point to the element's top-left corner
+                const rect = preview.getBoundingClientRect();
+                this.touchDragOffsetX = e.touches[0].clientX - rect.left;
+                this.touchDragOffsetY = e.touches[0].clientY - rect.top;
+
+                preview.style.position = 'fixed'; // Change to fixed for dragging over entire viewport
+                preview.style.zIndex = '10000'; // Ensure it's on top
+                preview.style.cursor = 'grabbing';
+                preview.classList.add('dragging'); // Add a class for visual feedback
+                
+                document.body.addEventListener('touchmove', onTouchMove, { passive: false });
+                document.body.addEventListener('touchend', onTouchEnd);
+                document.body.addEventListener('touchcancel', onTouchEnd); // Handle interruptions
+            }
+        };
+
+        const onTouchMove = (e) => {
+            if (this.isTouchDraggingPreview) {
+                e.preventDefault(); // Prevent scrolling while dragging
+                const touch = e.touches[0];
+                // Update position relative to the viewport
+                preview.style.left = `${touch.clientX - this.touchDragOffsetX}px`;
+                preview.style.top = `${touch.clientY - this.touchDragOffsetY}px`;
+
+                // Minimal visual feedback for binder container
+                const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+                if (targetElement && targetElement.closest('#binder-container')) {
+                     if (dom.binderContainer) dom.binderContainer.classList.add('highlight');
+                } else {
+                     if (dom.binderContainer) dom.binderContainer.classList.remove('highlight');
+                }
+            }
+        };
+
+        const onTouchEnd = async (e) => {
+            document.body.removeEventListener('touchmove', onTouchMove);
+            document.body.removeEventListener('touchend', onTouchEnd);
+            document.body.removeEventListener('touchcancel', onTouchEnd);
+
+            this.isTouchDraggingPreview = false;
+            preview.style.position = 'relative'; // Reset position
+            preview.style.left = '';
+            preview.style.top = '';
+            preview.style.zIndex = '';
+            preview.style.cursor = '';
+            preview.classList.remove('dragging');
+            if (dom.binderContainer) dom.binderContainer.classList.remove('highlight');
+
+
+            const touch = e.changedTouches[0];
+            if (touch && this.selectedCardForAdd) { // Ensure there's a touch and a card selected
+                const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+                let dropTargetIndex = -1; // Default to next empty slot
+
+                if (targetElement) {
+                    const slotElement = targetElement.closest('.card-slot');
+                    if (slotElement) {
+                        const localIndex = Array.from(dom.cardSlotsGrid.children).indexOf(slotElement);
+                        const currentPageStartIndex = (this.currentPage - 1) * this.cardsPerPage;
+                        dropTargetIndex = currentPageStartIndex + localIndex;
+                    } else if (targetElement.closest('#binder-container')) {
+                        // Dropped on the general binder area, find next empty slot
+                        dropTargetIndex = this.cardsData.indexOf(null);
+                        if (dropTargetIndex === -1) dropTargetIndex = this.cardsData.length;
+                    }
+                }
+                
+                // Only add card if a valid drop zone was found (a slot or binder container)
+                if (dropTargetIndex !== -1 && dropTargetIndex !== undefined) {
+                    await this.addCardToBinder(
+                        this.selectedCardForAdd.imageUrl,
+                        this.selectedCardForAdd.name,
+                        this.selectedCardForAdd.setName,
+                        this.selectedCardForAdd.cardNumber,
+                        true, // Assume image from API is direct
+                        dropTargetIndex
+                    );
+                }
+            }
+            // Reset and hide preview
+            this.selectedCardForAdd = null;
+            if (dom.draggableCardPreview) dom.draggableCardPreview.style.display = 'none';
+            if (dom.draggableCardPreview) dom.draggableCardPreview.classList.remove('active');
+            if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.src = '';
+            if (dom.draggableCardPreviewImage) dom.draggableCardPreviewImage.style.display = 'none';
+            this.updateActionButtonsState();
+        };
+        
+        preview.addEventListener('touchstart', onTouchStart, { passive: false });
+        this.touchListenersAdded = true; // Mark listeners as added
     }
 
     /**
